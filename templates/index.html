@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="login-screen" id="login-screen">
+        <h2>Enter Username</h2>
+        <input type="text" id="username" placeholder="Enter your username">
+        <button onclick="joinChat()">Join Chat</button>
+    </div>
+    <div class="chat-window" id="chat-window" style="display: none;">
+        <div class="active-users" id="active-users">
+            <h3>Active Users</h3>
+            <ul id="users-list"></ul>
+        </div>
+        <div class="chat-box">
+            <div class="messages" id="messages"></div>
+            <input type="text" id="message-input" placeholder="Type a message">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    <script>
+        const socket = io();
+        const loginScreen = document.getElementById('login-screen');
+        const chatWindow = document.getElementById('chat-window');
+        const messages = document.getElementById('messages');
+        const usersList = document.getElementById('users-list');
+        let username = '';
+
+        function joinChat() {
+            username = document.getElementById('username').value;
+            if (username) {
+                loginScreen.style.display = 'none';
+                chatWindow.style.display = 'flex';
+                socket.emit('join', { username });
+            }
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value;
+            if (message) {
+                socket.emit('message', { message });
+                messageInput.value = '';
+            }
+        }
+
+        socket.on('message', (data) => {
+            const msg = document.createElement('div');
+            msg.classList.add('message');
+            msg.innerHTML = `<strong>${data.username}</strong> [${data.timestamp}]: ${data.message}`;
+            messages.appendChild(msg);
+            messages.scrollTop = messages.scrollHeight;
+        });
+
+        socket.on('user_list', (users) => {
+            usersList.innerHTML = '';
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.textContent = user;
+                usersList.appendChild(li);
+            });
+        });
+
+        window.onbeforeunload = () => {
+            socket.emit('leave');
+        };
+    </script>
+</body>
+</html>
